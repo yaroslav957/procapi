@@ -1,7 +1,1 @@
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test() {
-        print!("hui")
-    }
-}
+pub mod process;

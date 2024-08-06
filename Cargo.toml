@@ -1,6 +1,16 @@
 [package]
 name = "procapi"
+authors = ['Timar07', 'Yaroslav957']
+repository = "https://github.com/yaroslav957/procapi"
+readme = "README.md"
+license-file = "LICENSE"
 version = "0.1.0"
 edition = "2021"
+
 [dependencies]
-libc = "0.2.155"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58.0", features = ["default"] }
+
+[target.'cfg(linux)'.dependencies]
+# libc
