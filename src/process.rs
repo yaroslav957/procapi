@@ -20,9 +20,8 @@ pub struct ProcessState {
 impl ProcessState {
     pub fn from_str(s: &str) -> Self {
         ProcessState {
-            run_state: ProcessRunState::from_char(
-                s.chars().nth(0).unwrap_or('Z')
-            ).unwrap()
+            run_state: ProcessRunState::from_char(s.as_bytes()[0] as char)
+                .unwrap_or(ProcessRunState::Dead)
         }
     }
 }
@@ -39,15 +38,15 @@ pub enum ProcessRunState {
 
 impl ProcessRunState {
     pub fn from_char(c: char) -> Option<ProcessRunState> {
-        match c {
-            'I' => Some(ProcessRunState::Idle),
-            'R' => Some(ProcessRunState::Runnable),
-            'S' => Some(ProcessRunState::Sleeping),
-            'T' => Some(ProcessRunState::Stopped),
-            'U' => Some(ProcessRunState::UninterruptibleWait),
-            'Z' => Some(ProcessRunState::Dead),
-            _ => None
-        }
+        Some(match c {
+            'I' => ProcessRunState::Idle,
+            'R' => ProcessRunState::Runnable,
+            'S' => ProcessRunState::Sleeping,
+            'T' => ProcessRunState::Stopped,
+            'U' => ProcessRunState::UninterruptibleWait,
+            'Z' => ProcessRunState::Dead,
+            _ => return None
+        })
     }
 }
 
