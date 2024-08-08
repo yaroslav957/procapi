@@ -37,7 +37,7 @@ impl Process {
                     pidpath(pid).unwrap_or_default()
                 }),
                 state: State {
-                    run_state: RunState::from_bsd_run_state(thread_run_state)
+                    run_state: RunState::from_bsd_run_state(pth_run_state)
                         .unwrap_or(RunState::Dead),
                 },
                 cmd: pidpath(pid).unwrap_or_default()
@@ -87,7 +87,7 @@ impl RunState {
 
     #[cfg(target_os = "macos")]
     pub fn from_bsd_run_state(pth_run_state: i32) -> Option<Self> {
-        let c = match thread_run_state {
+        let c = match pth_run_state {
             1 => 'R',
             2 => 'U',
             3 => 'S',
@@ -106,6 +106,6 @@ pub fn processes_info() -> Vec<Process> {
     pids_by_type(ProcFilter::All)
         .unwrap_or_default()
         .iter()
-        .filter_map(|pid| Process::from_pid(*pid as i32))
+        .filter_map(|&pid| Process::from_pid(pid as i32))
         .collect::<Vec<Process>>()
 }
