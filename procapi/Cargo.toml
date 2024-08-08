@@ -7,7 +7,8 @@ license-file.workspace = true
 version.workspace = true
 edition.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 procapi-sys = { path = "../procapi-sys" }
+
+[target.'cfg(unix)'.dependencies]
+libproc = "0.14.8"
