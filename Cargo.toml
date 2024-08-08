@@ -9,6 +9,7 @@ edition = "2021"
 
 [dependencies]
 itertools = "0.13.0"
+libproc = "0.14.8"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58.0", features = ["default"] }
