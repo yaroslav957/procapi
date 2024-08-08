@@ -26,8 +26,17 @@ impl Process {
                 info.ptinfo.pti_threadnum as usize)
                 .unwrap_or_default()
                 .iter()
-                .filter_map(|t| pidinfo::<ThreadInfo>(pid, *t).ok())
-                .map(|t| t.pth_run_state)
+                .filter_map(|&t| pidinfo::<ThreadInfo>(pid, t).ok())
+                .map(|t| match t.pth_run_state {
+                    1 => 1, // TH_STATE_RUNNING
+                    2 => 5, // TH_STATE_STOPPED
+                    3 => {  // TH_STATE_WAITING
+                        if t.pth_sleep_time > 20 { 4 } else { 3 }
+                     }
+                    4 => 2, // TH_STATE_UNINTERRUPTIBLE
+                    5 => 6, // TH_STATE_HALTED
+                    _ => 7,
+                })
                 .min()
                 .unwrap_or(7);
 
