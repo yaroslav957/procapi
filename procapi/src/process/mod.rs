@@ -14,7 +14,7 @@ impl ProcessInfo {
         pids_by_type(ProcFilter::All)
             .unwrap_or_default()
             .iter()
-            .filter_map(|&pid| Process::try_from(pid as i32)) // LINUX ERROR
+            .filter_map(|&pid| Process::try_from(pid as i32).ok()) // LINUX ERROR
             .collect::<Vec<Process>>()
     }
 }
