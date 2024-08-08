@@ -2,6 +2,10 @@ use std::{
     io::{Error, ErrorKind},
 };
 
+use procfs::process::{FDInfo, Io, Process as SysProcess, Stat, Status, TasksIter};
+use procfs::ProcError;
+use procfs::ProcessCGroup;
+
 use libproc::proc_pid;
 use libproc::proc_pid::{ListThreads, pidpath};
 
@@ -114,3 +118,42 @@ impl TryFrom<i32> for Process {
         }
     }
 }
+
+#[cfg(target_os = "linux")]
+impl TryFrom<i32> for Process {
+    type Error = Error;
+
+    fn try_from(pid: i32) -> Result<Self, Self::Error> {
+        let proc = SysProcess::new(pid).unwrap();
+
+        if let Ok(stat) = proc.stat() {
+            let cmd = proc.cmdline().unwrap_or_else(|_| {
+                if let Ok(exe) = proc.exe() {
+                    vec![exe.display().to_string()]
+                } else {
+                    vec![String::from("?")]
+                }
+            });
+
+            return Ok(Self {
+                ids: [stat.pid as u32, stat.ppid as u32],
+                state: State(RunState::try_from(stat.state)?),
+                cmd: cmd.join(" "),
+                name: if cmd.len() > 0 { cmd[0].clone() } else { "".into() }
+            })
+        }
+
+        Err(Error::last_os_error())
+    }
+}
+
+#[cfg(target_os = "linux")]
+pub fn get_processes() -> Vec<Process> {
+    procfs::process::all_processes()
+            .unwrap()
+            .flatten()
+            .filter_map(|p| p.stat().ok())
+            .filter_map(|stat| Process::try_from(stat.pid as i32).ok())
+            .collect::<Vec<Process>>()
+}
+

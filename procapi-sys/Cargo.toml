@@ -9,5 +9,8 @@ edition.workspace = true
 
 [dependencies]
 
+[target.'cfg(target_os="linux")'.dependencies]
+procfs = "0.16.0"
+
 [target.'cfg(unix)'.dependencies]
 libproc = "0.14.8"
