@@ -21,7 +21,7 @@ pub struct Process {
 impl Process {
     pub fn from_pid(pid: i32) -> Option<Self> {
         if let Ok(info) = proc_pid::pidinfo::<TaskAllInfo>(pid, 0) {
-            let thread_run_state = listpidinfo::<ListThreads>(
+            let pth_run_state = listpidinfo::<ListThreads>(
                 pid,
                 info.ptinfo.pti_threadnum as usize)
                 .unwrap_or_default()
@@ -31,23 +31,14 @@ impl Process {
                 .min()
                 .unwrap_or(7);
 
-            let run_state = RunState::from_char(match thread_run_state {
-                1 => 'R',
-                2 => 'U',
-                3 => 'S',
-                4 => 'I',
-                5 => 'T',
-                6 => 'H',
-                _ => '?',
-            }).unwrap_or(RunState::Dead);
-
             return Some(Process {
                 ids: [pid as u32, info.pbsd.pbi_ppid],
                 name: proc_pid::name(pid).unwrap_or_else(|_| {
                     pidpath(pid).unwrap_or_default()
                 }),
                 state: State {
-                    run_state,
+                    run_state: RunState::from_bsd_run_state(thread_run_state)
+                        .unwrap_or(RunState::Dead),
                 },
                 cmd: pidpath(pid).unwrap_or_default()
             })
@@ -92,6 +83,21 @@ impl RunState {
             'Z' => Self::Dead,
             _ => return None
         })
+    }
+
+    #[cfg(target_os = "macos")]
+    pub fn from_bsd_run_state(pth_run_state: i32) -> Option<Self> {
+        let c = match thread_run_state {
+            1 => 'R',
+            2 => 'U',
+            3 => 'S',
+            4 => 'I',
+            5 => 'T',
+            6 => 'H',
+            _ => '?',
+        };
+
+        Self::from_char(c)
     }
 }
 
