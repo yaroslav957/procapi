@@ -3,6 +3,15 @@ use procfs::process::Process as SysProcess;
 
 use crate::process::{Process, State};
 
+pub fn get_processes() -> Vec<Process> {
+    procfs::process::all_processes()
+        .unwrap()
+        .flatten()
+        .filter_map(|p| p.stat().ok())
+        .filter_map(|stat| Process::try_from(stat.pid).ok())
+        .collect::<Vec<Process>>()
+}
+
 impl TryFrom<i32> for Process {
     type Error = Error;
 
@@ -27,13 +36,4 @@ impl TryFrom<i32> for Process {
 
         Err(Error::last_os_error())
     }
-}
-
-pub fn get_processes() -> Vec<Process> {
-    procfs::process::all_processes()
-        .unwrap()
-        .flatten()
-        .filter_map(|p| p.stat().ok())
-        .filter_map(|stat| Process::try_from(stat.pid).ok())
-        .collect::<Vec<Process>>()
 }

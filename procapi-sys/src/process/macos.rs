@@ -1,4 +1,4 @@
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use libproc::{
     processes::{
         ProcFilter,
@@ -14,18 +14,12 @@ use libproc::{
 
 use crate::process::{Process, State};
 
-impl Process {
-    pub(crate) fn parse_state(pth_state: u32) -> char {
-        match pth_state {
-            1 => 'R',
-            2 => 'U',
-            3 => 'S',
-            4 => 'I',
-            5 => 'T',
-            6 => 'H',
-            _ => '?',
-        }
-    }
+pub fn get_processes() -> Vec<Process> {
+    pids_by_type(ProcFilter::All)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|&pid| Process::try_from(pid as i32).ok())
+        .collect::<Vec<Process>>()
 }
 
 impl TryFrom<i32> for Process {
@@ -57,7 +51,7 @@ impl TryFrom<i32> for Process {
                 name: proc_pid::name(pid).unwrap_or_else(|_| {
                     pidpath(pid).unwrap_or_default()
                 }),
-                state: State::try_from(Self::parse_state(pth_state))?,
+                state: State::try_from(pth_state)?,
                 cmd: pidpath(pid).unwrap_or_default(),
             })
         } else {
@@ -66,10 +60,21 @@ impl TryFrom<i32> for Process {
     }
 }
 
-pub fn get_processes() -> Vec<Process> {
-    pids_by_type(ProcFilter::All)
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|&pid| Process::try_from(pid as i32).ok())
-        .collect::<Vec<Process>>()
+impl TryFrom<u32> for State {
+    type Error = Error;
+
+    fn try_from(pth_state: u32) -> Result<Self, Self::Error> {
+        Ok(match pth_state {
+            1 => State::Runnable,
+            2 => State::UninterruptibleWait,
+            3 => State::Sleeping,
+            4 => State::Idle,
+            5 => State::Stopped,
+            6 => State::Dead,
+            _ => return Err(Error::new(
+                    ErrorKind::InvalidInput,
+                    format!("unknown pth state: {pth_state}")
+            ))
+        })
+    }
 }
