@@ -1,0 +1,11 @@
+[package]
+name = "procapi"
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+license-file.workspace = true
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+procapi-sys = { path = "../procapi-sys" }
