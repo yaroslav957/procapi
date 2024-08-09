@@ -9,6 +9,3 @@ edition.workspace = true
 
 [dependencies]
 procapi-sys = { path = "../procapi-sys" }
-
-[target.'cfg(unix)'.dependencies]
-libproc = "0.14.8"
