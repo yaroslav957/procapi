@@ -1,8 +1,12 @@
 use std::io::Error;
 use libproc::{
+    processes::{
+        ProcFilter,
+        pids_by_type
+    },
     task_info::TaskAllInfo,
-    proc_pid::listpidinfo,
     thread_info::ThreadInfo,
+    proc_pid::listpidinfo,
     proc_pid::pidinfo,
     libproc::proc_pid,
     libproc::proc_pid::{ListThreads, pidpath},
