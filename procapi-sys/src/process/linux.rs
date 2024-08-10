@@ -22,22 +22,19 @@ impl TryFrom<i32> for Process {
             Ok(stat) => {
                 let cmd = proc.cmdline()
                     .unwrap_or_else(|_| {
-                    if let Ok(exe) = proc.exe() {
-                        vec![exe.display()
-                            .to_string()]
-                    } else {
-                        vec![String::from("?")]
-                    }
-                });
+                        if let Ok(exe) = proc.exe() {
+                            vec![exe.display().to_string()]
+                        } else {
+                            vec![String::default()]
+                        }
+                    });
 
                 Ok(Self {
                     ids: [stat.pid as u32, stat.ppid as u32],
                     state: State::try_from(stat.state)
                         .map_err(|_| Error::last_os_error())?,
                     cmd: cmd.join(" "),
-                    name: cmd.first()
-                        .cloned()
-                        .unwrap_or_default(),
+                    name: cmd.first().cloned().unwrap_or_default(),
                 })
             }
             Err(_) => Err(Error::last_os_error()),
