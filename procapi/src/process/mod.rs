@@ -9,6 +9,6 @@ pub struct ProcessInfo {
 
 impl ProcessInfo {
     pub fn processes() -> Vec<Process> {
-        get_processes() // must work 
+        get_processes()
     }
 }
