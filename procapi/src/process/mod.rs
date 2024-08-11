@@ -1,5 +1,5 @@
-use procapi_sys::process::get_processes;
-use procapi_sys::process::Process;
+use procapi_core::process::get_processes;
+use procapi_core::process::Process;
 
 
 #[derive(Clone)]

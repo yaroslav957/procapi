@@ -8,4 +8,4 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-procapi-sys = { path = "../procapi-sys" }
+procapi_core = { path = "../procapi_core" }

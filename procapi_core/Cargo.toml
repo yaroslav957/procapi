@@ -1,5 +1,5 @@
 [package]
-name = "procapi-sys"
+name = "procapi_core"
 authors.workspace = true
 repository.workspace = true
 readme.workspace = true

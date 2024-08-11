@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "procapi",
-    "procapi-sys"
+    "procapi_core"
 ]
 
 [workspace.package]
