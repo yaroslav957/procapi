@@ -46,6 +46,8 @@ impl TryFrom<i32> for Process {
                 .min()
                 .unwrap_or(7);
 
+            dbg!(info.pbsd);
+
             Ok(Process {
                 ids: [pid as u32, info.pbsd.pbi_ppid],
                 name: proc_pid::name(pid).unwrap_or_else(|_| {
