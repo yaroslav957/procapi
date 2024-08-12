@@ -13,3 +13,13 @@ readme = "README.md"
 license-file = "LICENSE"
 version = "0.1.0"
 edition = "2021"
+
+[profile.dev]
+opt-level = 1
+panic = "unwind"
+split-debuginfo = "off"
+
+[profile.release]
+opt-level = 3
+panic = "abort"
+strip = true
