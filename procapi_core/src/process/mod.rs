@@ -1,24 +1,7 @@
-#[cfg(target_os = "macos")]
-mod macos;
-#[cfg(target_os = "macos")]
-pub use macos::*;
-
-#[cfg(target_os = "linux")]
-mod linux;
-#[cfg(target_os = "linux")]
-pub use linux::*;
-
-#[cfg(target_os = "windows")]
-mod windows;
-#[cfg(target_os = "windows")]
-pub use windows::*;
-
-#[cfg(target_os = "freebsd")]
-mod bsd;
-#[cfg(target_os = "freebsd")]
-pub use bsd::*;
-
 use std::io::{Error, ErrorKind};
+
+mod platform;
+pub use platform::*;
 
 #[derive(Debug, Clone)]
 pub struct Process {
@@ -60,7 +43,7 @@ impl TryFrom<char> for State {
             'U' => Self::UninterruptibleWait,
             'Z' => Self::Dead,
             _ => return Err(
-                Error::new(ErrorKind::InvalidInput, "Invalid state")
+                Error::new(ErrorKind::InvalidInput, "[Invalid parse state]")
             )
         })
     }

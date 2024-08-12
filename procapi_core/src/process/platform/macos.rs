@@ -1,9 +1,6 @@
 use std::io::{Error, ErrorKind};
 use libproc::{
-    processes::{
-        ProcFilter,
-        pids_by_type
-    },
+    processes::{ProcFilter, pids_by_type},
     task_info::TaskAllInfo,
     thread_info::ThreadInfo,
     proc_pid::listpidinfo,

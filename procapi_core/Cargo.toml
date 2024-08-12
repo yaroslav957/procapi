@@ -10,7 +10,6 @@ edition.workspace = true
 [dependencies]
 
 [target.'cfg(target_os="linux")'.dependencies]
-procfs = { version = "0.16.0", features = ["default"] }
 
 [target.'cfg(target_os="macos")'.dependencies]
 libproc = { version = "0.14.8", features = ["default"] }
