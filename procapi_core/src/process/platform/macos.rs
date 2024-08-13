@@ -93,38 +93,32 @@ fn get_cmdline(pid: u32) -> Option<Vec<String>> {
         libc::KERN_PROCARGS2,
         pid.try_into().unwrap(),
     ];
-    let mut size: size_t = get_argmax();
-    let process_args: *mut u8 =
-        unsafe { std::mem::transmute(libc::calloc(size, std::mem::size_of::<size_t>())) };
+    let mut size = get_argmax();
+    let mut process_args = Vec::<u8>::with_capacity(size);
     let mut res = Vec::<String>::new();
-
-    assert_ne!(
-        process_args,
-        null_mut(),
-        "process args buffer allocation failed"
-    );
 
     unsafe {
         if libc::sysctl(
             mib.as_mut_ptr(),
             3,
-            process_args as *mut c_void,
+            process_args.as_mut_ptr() as *mut c_void,
             &mut size as *mut usize,
             core::ptr::null_mut(),
             0,
         ) == -1
         {
-            libc::free(process_args as *mut c_void);
             return None;
         }
 
         let mut arg_start: *mut u8 = null_mut();
-        let mut ch_ptr: *mut u8 = process_args.add(std::mem::size_of::<libc::c_int>());
+        let mut ch_ptr: *mut u8 = process_args
+            .as_mut_ptr()
+            .add(std::mem::size_of::<libc::c_int>());
 
         for _ in 0..size {
             if *ch_ptr == b'\0' {
                 if !arg_start.is_null() && arg_start != ch_ptr {
-                    res.push(get_str_unchecked(arg_start, ch_ptr));
+                    res.push(get_str_checked(arg_start, ch_ptr));
                 }
 
                 arg_start = ch_ptr.add(1);
@@ -134,7 +128,7 @@ fn get_cmdline(pid: u32) -> Option<Vec<String>> {
         }
     }
 
-    return Some(res);
+    Some(res)
 }
 
 /// Get buffer size reserved for arguments string
@@ -157,15 +151,14 @@ fn get_argmax() -> size_t {
     sys_max_args as size_t
 }
 
-/// Used for extracting data retrieved from kernel, which is guaranteed
-/// to be a valid string
-unsafe fn get_str_unchecked(
+#[allow(dead_code)]
+unsafe fn get_str_checked(
     start: *mut u8,
     end: *mut u8,
 ) -> String {
     let len = end as usize - start as usize;
     let bytes = Vec::from_raw_parts(start, len, len);
-    let s = String::from_utf8_unchecked(bytes.clone());
+    let s = String::from_utf8(bytes.clone());
     std::mem::forget(bytes);
-    s
+    s.unwrap_or_default()
 }
