@@ -88,7 +88,7 @@ impl TryFrom<u32> for State {
 }
 
 fn get_cmdline(pid: u32) -> Option<Vec<String>> {
-    let mut mib: [libc::c_int; 3] = [
+    let mut mib = [
         libc::CTL_KERN,
         libc::KERN_PROCARGS2,
         pid.try_into().unwrap(),
@@ -100,7 +100,7 @@ fn get_cmdline(pid: u32) -> Option<Vec<String>> {
     unsafe {
         if libc::sysctl(
             mib.as_mut_ptr(),
-            3,
+            mib.len() as libc::c_uint,
             process_args.as_mut_ptr() as *mut c_void,
             &mut size as *mut usize,
             core::ptr::null_mut(),
@@ -140,7 +140,7 @@ fn get_argmax() -> size_t {
     unsafe {
         libc::sysctl(
             mib.as_mut_ptr(),
-            2,
+            mib.len() as libc::c_uint,
             (&mut sys_max_args) as *mut i32 as *mut c_void,
             &mut size,
             null_mut(),
@@ -151,14 +151,12 @@ fn get_argmax() -> size_t {
     sys_max_args as size_t
 }
 
-#[allow(dead_code)]
 unsafe fn get_str_checked(
     start: *mut u8,
     end: *mut u8,
 ) -> String {
     let len = end as usize - start as usize;
-    let bytes = Vec::from_raw_parts(start, len, len);
-    let s = String::from_utf8(bytes.clone());
-    std::mem::forget(bytes);
-    s.unwrap_or_default()
+    let bytes = std::slice::from_raw_parts(start, len);
+    let s = std::str::from_utf8(bytes);
+    s.unwrap_or("").to_owned()
 }
