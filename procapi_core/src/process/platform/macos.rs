@@ -50,8 +50,6 @@ impl TryFrom<i32> for Process {
                 .min()
                 .unwrap_or(7);
 
-            dbg!(info.pbsd);
-
             Ok(Process {
                 ids: [pid as u32, info.pbsd.pbi_ppid],
                 name: proc_pid::name(pid).unwrap_or_else(|_| pidpath(pid).unwrap_or_default()),
@@ -110,12 +108,23 @@ fn get_cmdline(pid: u32) -> Option<Vec<String>> {
             return None;
         }
 
+        let mut arg_num: libc::c_int = 0;
+        libc::memcpy(
+            (&mut arg_num) as *mut libc::c_int as *mut c_void,
+            process_args.as_ptr() as *const c_void,
+            std::mem::size_of::<libc::c_int>(),
+        );
+
         let mut arg_start: *mut u8 = null_mut();
         let mut ch_ptr: *mut u8 = process_args
             .as_mut_ptr()
             .add(std::mem::size_of::<libc::c_int>());
 
         for _ in 0..size {
+            if arg_num == 0 {
+                break;
+            }
+
             if *ch_ptr == b'\0' {
                 if !arg_start.is_null() && arg_start != ch_ptr {
                     res.push(get_str_checked(arg_start, ch_ptr));
@@ -124,6 +133,7 @@ fn get_cmdline(pid: u32) -> Option<Vec<String>> {
                 arg_start = ch_ptr.add(1);
             }
 
+            arg_num -= 1;
             ch_ptr = ch_ptr.add(1);
         }
     }
