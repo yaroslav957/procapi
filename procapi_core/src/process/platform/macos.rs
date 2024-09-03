@@ -15,14 +15,6 @@ use std::{
 
 use crate::process::{Process, State};
 
-pub fn get_processes() -> Vec<Process> {
-    pids_by_type(ProcFilter::All)
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|&pid| Process::try_from(pid as i32).ok())
-        .collect::<Vec<Process>>()
-}
-
 impl TryFrom<i32> for Process {
     type Error = Error;
 
@@ -85,6 +77,16 @@ impl TryFrom<u32> for State {
     }
 }
 
+/*! 
+    Это же никак не относится к глобалу да? как например получение всех процессов.
+    Идиоматически это должен быть импл `Process` и сигнатурка 
+    чот типа просто `.cmdline(&self) -> ...` так как потом же он будет у нас структурку возвращать `Cmdline`,
+    потом ваще все поля раскидаем по структуркам,
+    зеро кост, хули
+    ------- 03.09.2024 -------
+    delete this after update
+!*/
+
 fn get_cmdline(pid: u32) -> Option<Vec<String>> {
     let mut mib = [
         libc::CTL_KERN,
@@ -141,7 +143,17 @@ fn get_cmdline(pid: u32) -> Option<Vec<String>> {
     Some(res)
 }
 
+// Глобал, все норм
+pub fn get_processes() -> Vec<Process> {
+    pids_by_type(ProcFilter::All)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|&pid| Process::try_from(pid as i32).ok())
+        .collect::<Vec<Process>>()
+}
+
 /// Get buffer size reserved for arguments string
+//!!!! а вот это все уже относится к глобалу и прямого отношения к `Process` не имеет, так и оставляем с таким неймингом, так как это функция а не метод
 fn get_argmax() -> size_t {
     let mut sys_max_args = 0i32;
     let mut size = std::mem::size_of::<libc::c_int>();
@@ -160,7 +172,7 @@ fn get_argmax() -> size_t {
 
     sys_max_args as size_t
 }
-
+// Глобал все норм. Правда чет тип такое рутинное можно было ваще в макросы вынести, но похуй, главное шоб эту функцию заинлайнило
 unsafe fn get_str_checked(
     start: *mut u8,
     end: *mut u8,

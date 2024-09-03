@@ -8,6 +8,6 @@ pub struct ProcessInfo {
 
 impl ProcessInfo {
 	pub fn processes() -> Vec<Process> {
-		get_processes()
+		get_processes() // так как трайформ можт наебнуца, обернуть бы выхлоп `get_processes` в рзелатик, но думаю пока похуй? оно и так небольшое, потом есчо
 	}
 }

@@ -4,6 +4,8 @@ use std::io::{self, BufRead};
 use std::io::Error;
 use std::path::Path;
 
+//фулл передапать хуйню
+
 const PROC_DIR: &'static str = "/proc";
 
 const COMM_PATH: &'static str = "comm";
