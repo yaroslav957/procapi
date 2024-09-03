@@ -130,10 +130,10 @@ fn get_cmdline(pid: u32) -> Option<Vec<String>> {
                     res.push(get_str_checked(arg_start, ch_ptr));
                 }
 
+                arg_num -= 1;
                 arg_start = ch_ptr.add(1);
             }
 
-            arg_num -= 1;
             ch_ptr = ch_ptr.add(1);
         }
     }
