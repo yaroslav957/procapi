@@ -4,26 +4,20 @@ use std::io::{self, BufRead};
 use std::io::Error;
 use std::path::Path;
 
-//фулл передапать хуйню
-
-const PROC_DIR: &'static str = "/proc";
-
-const COMM_PATH: &'static str = "comm";
-const STATUS_PATH: &'static str = "status";
-const CMD_PATH: &'static str = "cmdline";
-
 pub fn get_processes() -> Vec<Process> {
-    let proc_dir = Path::new(PROC_DIR);
     let mut pids = Vec::new();
 
-    if proc_dir.exists() {
-        for entry in fs::read_dir(proc_dir).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-
-            if path.is_dir() {
-                if let Ok(pid) = entry.file_name().into_string().unwrap().parse::<u32>() {
-                    pids.push(pid);
+    if let Ok(entries) = fs::read_dir("/proc") {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.is_dir() {
+                    if let Ok(pid) = entry.file_name()
+                        .into_string()
+                        .unwrap_or_default()
+                        .parse::<u32>() {
+                        pids.push(pid);
+                    }
                 }
             }
         }
@@ -42,15 +36,21 @@ impl TryFrom<u32> for Process {
         let proc_dir = Path::new("/proc");
         let pid_dir = proc_dir.join(pid.to_string());
 
-        let status_path = pid_dir.join("status");
+        let status_path = pid_dir.join("stat");
         let comm_path = pid_dir.join("comm");
         let cmdline_path = pid_dir.join("cmdline");
 
         let mut ids = [0; 2];
-        let mut name = String::new();
-        let mut cmd = String::new();
+        let name = fs::read_to_string(&comm_path)?
+            .trim()
+            .to_string();
+        let cmd = fs::read_to_string(&cmdline_path)?
+            .trim()
+            .to_string()
+            .replace('\0', " ");
         let mut state = State::Runnable;
-
+        
+        // ОСТАЛОСЬ ФИКСАНУТЬ ЭТО УЕБИЩЕ
         if let Ok(status_file) = fs::File::open(&status_path) {
             let reader = io::BufReader::new(status_file);
             for line in reader.lines() {
@@ -65,19 +65,8 @@ impl TryFrom<u32> for Process {
                 }
             }
         }
-
-        if let Ok(comm_file) = fs::File::open(&comm_path) {
-            let mut reader = io::BufReader::new(comm_file);
-            reader.read_line(&mut name).unwrap();
-            name = name.trim().to_string();
-        }
-
-        if let Ok(cmdline_file) = fs::File::open(&cmdline_path) {
-            let mut reader = io::BufReader::new(cmdline_file);
-            reader.read_line(&mut cmd).unwrap();
-            cmd = cmd.trim().to_string();
-        }
-
+        // ОСТАЛОСЬ ФИКСАНУТЬ ЭТО УЕБИЩЕ ^^^
+        
         Ok(Process {
             ids,
             name,
