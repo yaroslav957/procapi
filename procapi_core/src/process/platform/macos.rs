@@ -92,7 +92,7 @@ impl Process {
             libc::KERN_PROCARGS2,
             pid.try_into().unwrap(),
         ];
-        let mut size = get_sys_argmax();
+        let mut size = get_argmax();
         let mut process_args = Vec::<u8>::with_capacity(size);
         let mut res = Vec::<String>::new();
 
