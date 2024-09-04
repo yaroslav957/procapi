@@ -15,6 +15,14 @@ use std::{
 
 use crate::process::{Process, State};
 
+pub fn get_processes() -> Vec<Process> {
+    pids_by_type(ProcFilter::All)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|&pid| Process::try_from(pid as i32).ok())
+        .collect::<Vec<Process>>()
+}
+
 impl TryFrom<i32> for Process {
     type Error = Error;
 
@@ -46,7 +54,7 @@ impl TryFrom<i32> for Process {
                 ids: [pid as u32, info.pbsd.pbi_ppid],
                 name: proc_pid::name(pid).unwrap_or_else(|_| pidpath(pid).unwrap_or_default()),
                 state: State::try_from(pth_state)?,
-                cmd: get_cmdline(pid as u32)
+                cmd: Process::get_cmdline(pid as u32)
                     .unwrap_or_else(|| vec![pidpath(pid).unwrap_or_default()])
                     .join(" "),
             })
@@ -77,83 +85,65 @@ impl TryFrom<u32> for State {
     }
 }
 
-/*! 
-    Это же никак не относится к глобалу да? как например получение всех процессов.
-    Идиоматически это должен быть импл `Process` и сигнатурка 
-    чот типа просто `.cmdline(&self) -> ...` так как потом же он будет у нас структурку возвращать `Cmdline`,
-    потом ваще все поля раскидаем по структуркам,
-    зеро кост, хули
-    ------- 03.09.2024 -------
-    delete this after update
-!*/
+impl Process {
+    fn get_cmdline(pid: u32) -> Option<Vec<String>> {
+        let mut mib = [
+            libc::CTL_KERN,
+            libc::KERN_PROCARGS2,
+            pid.try_into().unwrap(),
+        ];
+        let mut size = get_argmax();
+        let mut process_args = Vec::<u8>::with_capacity(size);
+        let mut res = Vec::<String>::new();
 
-fn get_cmdline(pid: u32) -> Option<Vec<String>> {
-    let mut mib = [
-        libc::CTL_KERN,
-        libc::KERN_PROCARGS2,
-        pid.try_into().unwrap(),
-    ];
-    let mut size = get_argmax();
-    let mut process_args = Vec::<u8>::with_capacity(size);
-    let mut res = Vec::<String>::new();
-
-    unsafe {
-        if libc::sysctl(
-            mib.as_mut_ptr(),
-            mib.len() as libc::c_uint,
-            process_args.as_mut_ptr() as *mut c_void,
-            &mut size as *mut usize,
-            core::ptr::null_mut(),
-            0,
-        ) == -1
-        {
-            return None;
-        }
-
-        let mut arg_num: libc::c_int = 0;
-        libc::memcpy(
-            (&mut arg_num) as *mut libc::c_int as *mut c_void,
-            process_args.as_ptr() as *const c_void,
-            std::mem::size_of::<libc::c_int>(),
-        );
-
-        let mut arg_start: *mut u8 = null_mut();
-        let mut ch_ptr: *mut u8 = process_args
-            .as_mut_ptr()
-            .add(std::mem::size_of::<libc::c_int>());
-
-        for _ in 0..size {
-            if arg_num == 0 {
-                break;
+        unsafe {
+            if libc::sysctl(
+                mib.as_mut_ptr(),
+                mib.len() as libc::c_uint,
+                process_args.as_mut_ptr() as *mut c_void,
+                &mut size as *mut usize,
+                core::ptr::null_mut(),
+                0,
+            ) == -1
+            {
+                return None;
             }
 
-            if *ch_ptr == b'\0' {
-                if !arg_start.is_null() && arg_start != ch_ptr {
-                    res.push(get_str_checked(arg_start, ch_ptr));
+            let mut arg_num: libc::c_int = 0;
+            libc::memcpy(
+                (&mut arg_num) as *mut libc::c_int as *mut c_void,
+                process_args.as_ptr() as *const c_void,
+                std::mem::size_of::<libc::c_int>(),
+            );
+
+            let mut arg_start: *mut u8 = null_mut();
+            let mut ch_ptr: *mut u8 = process_args
+                .as_mut_ptr()
+                .add(std::mem::size_of::<libc::c_int>());
+
+            for _ in 0..size {
+                if arg_num == 0 {
+                    break;
                 }
 
-                arg_num -= 1;
-                arg_start = ch_ptr.add(1);
+                if *ch_ptr == b'\0' {
+                    if !arg_start.is_null() && arg_start != ch_ptr {
+                        res.push(get_str_checked(arg_start, ch_ptr));
+                    }
+
+                    arg_num -= 1;
+                    arg_start = ch_ptr.add(1);
+                }
+
+                ch_ptr = ch_ptr.add(1);
             }
-
-            ch_ptr = ch_ptr.add(1);
         }
+
+        Some(res)
     }
-
-    Some(res)
-}
-
-// Глобал, все норм
-pub fn get_processes() -> Vec<Process> {
-    pids_by_type(ProcFilter::All)
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|&pid| Process::try_from(pid as i32).ok())
-        .collect::<Vec<Process>>()
 }
 
 /// Get buffer size reserved for arguments string
-//!!!! а вот это все уже относится к глобалу и прямого отношения к `Process` не имеет, так и оставляем с таким неймингом, так как это функция а не метод
 fn get_argmax() -> size_t {
     let mut sys_max_args = 0i32;
     let mut size = std::mem::size_of::<libc::c_int>();
@@ -172,7 +162,8 @@ fn get_argmax() -> size_t {
 
     sys_max_args as size_t
 }
-// Глобал все норм. Правда чет тип такое рутинное можно было ваще в макросы вынести, но похуй, главное шоб эту функцию заинлайнило
+
+#[inline]
 unsafe fn get_str_checked(
     start: *mut u8,
     end: *mut u8,
