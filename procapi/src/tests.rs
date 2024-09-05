@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-	use crate::process::ProcessInfo;
+    use crate::process::ProcessInfo;
 
-	#[test]
-	fn test() {
-		dbg!(ProcessInfo::processes());
-	}
+    #[test]
+    fn test() {
+        dbg!(ProcessInfo::processes());
+    }
 }
