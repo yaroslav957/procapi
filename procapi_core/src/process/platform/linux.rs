@@ -35,24 +35,25 @@ impl TryFrom<u32> for Process {
     fn try_from(pid: u32) -> Result<Self, Self::Error> {
         let proc_dir = Path::new("/proc");
         let pid_dir = proc_dir.join(pid.to_string());
-        let mut ids = [0; 2];
+        let mut pid = u32::default();
+        let mut ppid = u32::default();
         let name = fs::read_to_string(&pid_dir.join("comm"))?
             .trim()
             .to_string();
         let cmd = fs::read_to_string(&pid_dir.join("cmdline"))?.replace('\0', " ");
-        let mut state = State::Runnable;
+        let mut state = State::default();
 
         let _ = fs::read_to_string(&pid_dir.join("status")).map(|status_content| {
             status_content.lines().for_each(|line| {
                 if line.starts_with("Pid:") {
-                    ids[0] = line
+                    pid = line
                         .split_whitespace()
                         .nth(1)
                         .unwrap_or_default()
                         .parse()
                         .unwrap_or_default();
                 } else if line.starts_with("PPid:") {
-                    ids[1] = line
+                    ppid = line
                         .split_whitespace()
                         .nth(1)
                         .unwrap_or_default()
@@ -67,7 +68,8 @@ impl TryFrom<u32> for Process {
         })?;
 
         Ok(Process {
-            ids,
+            pid,
+            ppid,
             name,
             cmd,
             state,
