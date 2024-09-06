@@ -51,7 +51,8 @@ impl TryFrom<i32> for Process {
                 .unwrap_or(7);
 
             Ok(Process {
-                ids: [pid as u32, info.pbsd.pbi_ppid],
+                pid: pid as u32,
+                ppid: info.pbsd.pbi_ppid,
                 name: proc_pid::name(pid).unwrap_or_else(|_| pidpath(pid).unwrap_or_default()),
                 state: State::try_from(pth_state)?,
                 cmd: Process::get_cmdline(pid as u32)
