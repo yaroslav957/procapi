@@ -30,7 +30,10 @@ impl TryFrom<char> for State {
             'T' => Self::Stopped,
             'U' | 'D' => Self::UninterruptibleWait, // AKA Unix uninterruptible sleep
             'Z' => Self::Dead,
-            _ => return Err(Error::new(ErrorKind::InvalidInput, "[Invalid parse state]")),
+            _ => return Err(Error::new(
+                ErrorKind::InvalidInput,
+                format!("[Invalid state character '{c}']")
+            )),
         })
     }
 }
