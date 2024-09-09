@@ -13,7 +13,7 @@ use std::{
     ptr::null_mut,
 };
 
-use crate::process::{Process, State};
+use crate::process::{Process, State, Thread};
 
 pub fn get_processes() -> Vec<Process> {
     pids_by_type(ProcFilter::All)
@@ -28,8 +28,9 @@ impl TryFrom<i32> for Process {
 
     fn try_from(pid: i32) -> Result<Self, Self::Error> {
         if let Ok(info) = proc_pid::pidinfo::<TaskAllInfo>(pid, 0) {
-            let pth_state = listpidinfo::<ListThreads>(pid, info.ptinfo.pti_threadnum as usize)
-                .unwrap_or_default()
+            let threads = listpidinfo::<ListThreads>(pid, info.ptinfo.pti_threadnum as usize)
+                .unwrap_or_default();
+            let pth_state = threads
                 .iter()
                 .filter_map(|&t| pidinfo::<ThreadInfo>(pid, t).ok())
                 .map(|t| match t.pth_run_state {
@@ -58,6 +59,7 @@ impl TryFrom<i32> for Process {
                 cmd: Process::get_cmdline(pid as u32)
                     .unwrap_or_else(|| vec![pidpath(pid).unwrap_or_default()])
                     .join(" "),
+                threads: threads.iter().map(|&tid| Thread { tid }).collect::<Vec<Thread>>()
             })
         } else {
             Err(Error::last_os_error())
@@ -174,3 +176,4 @@ unsafe fn get_str_checked(
     let s = std::str::from_utf8(bytes);
     s.unwrap_or("").to_owned()
 }
+
