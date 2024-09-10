@@ -4,6 +4,6 @@ mod tests {
 
     #[test]
     fn test() {
-        dbg!(ProcessInfo::init());
+        dbg!(ProcessInfo::init().processes);
     }
 }
