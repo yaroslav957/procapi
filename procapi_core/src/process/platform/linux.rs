@@ -47,8 +47,10 @@ impl TryFrom<u32> for Process {
                 entry.ok().and_then(|e| {
                     if e.path().is_dir() {
                         e.path()
-                            .file_name()
-                            .and_then(|name| name.to_str()?.parse().ok())
+                            .file_name()?
+                            .to_str()?
+                            .parse()
+                            .ok()
                             .map(|tid| Thread { tid }) // Later: Thread::try_from(tid)
                     } else {
                         None

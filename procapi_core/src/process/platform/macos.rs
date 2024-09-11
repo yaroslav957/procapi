@@ -59,7 +59,10 @@ impl TryFrom<i32> for Process {
                 cmd: Process::get_cmdline(pid as u32)
                     .unwrap_or_else(|| vec![pidpath(pid).unwrap_or_default()])
                     .join(" "),
-                threads: threads.iter().map(|&tid| Thread { tid }).collect::<Vec<Thread>>()
+                threads: threads
+                    .iter()
+                    .map(|&tid| Thread { tid })
+                    .collect::<Vec<Thread>>(),
             })
         } else {
             Err(Error::last_os_error())
@@ -176,4 +179,3 @@ unsafe fn get_str_checked(
     let s = std::str::from_utf8(bytes);
     s.unwrap_or("").to_owned()
 }
-

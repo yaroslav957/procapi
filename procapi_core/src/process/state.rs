@@ -2,9 +2,9 @@ use std::io::{Error, ErrorKind};
 
 #[derive(Debug, Clone, Default)]
 pub enum State {
-    #[default]
     Idle,
     Runnable,
+    #[default]
     Sleeping,
     Stopped,
     UninterruptibleWait,
@@ -15,7 +15,7 @@ impl TryFrom<&str> for State {
     type Error = Error;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        Ok(State::try_from(s.as_bytes()[0] as char).unwrap_or(State::Dead))
+        Ok(State::try_from(s.as_bytes()[0] as char).unwrap_or_default())
     }
 }
 

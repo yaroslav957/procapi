@@ -13,6 +13,6 @@ pub struct Process {
     pub name: String,
     pub cmd: String,
     pub state: State,
+    /* pub usage: Usage */
     pub threads: Vec<Thread>,
-    // usage
 }
