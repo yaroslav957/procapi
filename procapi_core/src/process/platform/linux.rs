@@ -58,8 +58,7 @@ impl TryFrom<u32> for Process {
                 })
             })
             .collect();
-
-        fs::read_to_string(&pid_dir.join("status")).map(|status_content| {
+        let _ = fs::read_to_string(&pid_dir.join("status")).map(|status_content| {
             status_content.lines().for_each(|line| {
                 if line.starts_with("PPid:") {
                     ppid = line
@@ -70,7 +69,7 @@ impl TryFrom<u32> for Process {
                         .unwrap_or_default();
                 } else if line.starts_with("State:") {
                     let state_str = line.split_whitespace().nth(1).unwrap_or_default();
-                    state = State::try_from(state_str.chars().next().unwrap_or_default())
+                    state = State::try_from(state_str.bytes().next().unwrap_or_default())
                         .unwrap_or_default();
                 }
             })

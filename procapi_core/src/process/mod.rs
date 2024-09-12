@@ -1,5 +1,5 @@
 mod platform;
-mod state;
+pub mod state;
 mod thread;
 
 use crate::process::state::State;
