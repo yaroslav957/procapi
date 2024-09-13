@@ -5,20 +5,17 @@ impl TryFrom<u8> for State {
     type Error = Error;
 
     fn try_from(c: u8) -> Result<Self, Self::Error> {
+        //https://github.com/torvalds/linux/blob/77f587896757708780a7e8792efe62939f25a5ab/fs/proc/array.c#L126
         Ok(match c {
             b'R' => Self::Running,
-            b'S' => Self::Sleeping,
-            b'D' => Self::DiskSleep,
-            b'T' => Self::Stopped,
-            b't' => Self::TracingStop,
-            b'X' => Self::Dead,
-            b'Z' => Self::Zombie,
-            b'P' => Self::Parked,
-            b'I' => Self::Idle,
+            b'S' | b'P' => Self::Sleeping,
+            b'D' | b'T' | b't' => Self::Waiting,
+            b'X' | b'Z' => Self::Dead,
+            b'I' => Self::Embryo,
             _ => {
                 return Err(Error::new(
                     ErrorKind::InvalidInput,
-                    format!("[Invalid state character '{c}']"),
+                    format!("[Invalid/Unimplemented state character '{}']", c as char),
                 ))
             }
         })

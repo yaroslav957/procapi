@@ -6,7 +6,7 @@ use std::path::Path;
 
 pub fn get_processes() -> Vec<Process> {
     let mut pids = Vec::new();
-
+    /* remake */
     if let Ok(entries) = fs::read_dir("/proc") {
         for entry in entries {
             if let Ok(entry) = entry {
@@ -24,6 +24,7 @@ pub fn get_processes() -> Vec<Process> {
             }
         }
     }
+    /* remake */
 
     pids.iter()
         .filter_map(|&pid| Process::try_from(pid).ok())
@@ -36,44 +37,46 @@ impl TryFrom<u32> for Process {
     fn try_from(pid: u32) -> Result<Self, Self::Error> {
         let proc_dir = Path::new("/proc");
         let pid_dir = proc_dir.join(pid.to_string());
+        let comm_dir = pid_dir.join("comm");
+        let cmdline_dir = pid_dir.join("cmdline");
+        let thread_dir = pid_dir.join("task");
+        let status_dir = pid_dir.join("status");
+
         let mut ppid = u32::default();
         let mut state = State::default();
-        let name = fs::read_to_string(&pid_dir.join("comm"))?
-            .trim()
-            .to_string();
-        let cmd = fs::read_to_string(&pid_dir.join("cmdline"))?.replace('\0', " ");
-        let threads: Vec<Thread> = fs::read_dir(&pid_dir.join("task"))?
-            .filter_map(|entry| {
-                entry.ok().and_then(|e| {
-                    if e.path().is_dir() {
-                        e.path()
-                            .file_name()?
-                            .to_str()?
-                            .parse()
-                            .ok()
-                            .map(|tid| Thread { tid }) // Later: Thread::try_from(tid)
-                    } else {
-                        None
-                    }
-                })
-            })
-            .collect();
-        let _ = fs::read_to_string(&pid_dir.join("status")).map(|status_content| {
-            status_content.lines().for_each(|line| {
-                if line.starts_with("PPid:") {
-                    ppid = line
-                        .split_whitespace()
-                        .nth(1)
+        let mut threads = Vec::new();
+
+        let name = fs::read_to_string(comm_dir)?.trim().to_string();
+        let cmd = fs::read_to_string(cmdline_dir)?.replace('\0', " ");
+        let status_content = fs::read_to_string(status_dir)?;
+        for line in status_content.lines() {
+            match line.split_once(':') {
+                Some(("PPid", p)) => ppid = p.trim().parse().unwrap_or_default(),
+                Some(("State", s)) => state = State::try_from(s.trim()).unwrap_or_default(),
+                _ => {}
+            }
+        }
+
+        /* remake */
+        let thread_dir_content = fs::read_dir(thread_dir)?;
+        for entry in thread_dir_content {
+            if let Ok(e) = entry {
+                if e.path().is_dir() {
+                    if let Some(tid) = e
+                        .path()
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_str()
                         .unwrap_or_default()
                         .parse()
-                        .unwrap_or_default();
-                } else if line.starts_with("State:") {
-                    let state_str = line.split_whitespace().nth(1).unwrap_or_default();
-                    state = State::try_from(state_str.bytes().next().unwrap_or_default())
-                        .unwrap_or_default();
+                        .ok()
+                    {
+                        threads.push(Thread { tid }); // Later: Thread::try_from(tid)
+                    }
                 }
-            })
-        })?;
+            }
+        }
+        /* remake */
 
         Ok(Process {
             pid,
