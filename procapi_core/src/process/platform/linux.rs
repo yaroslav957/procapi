@@ -1,34 +1,40 @@
 use crate::process::thread::Thread;
 use crate::process::{Process, State};
 use std::fs;
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use std::path::Path;
 
 pub fn get_processes() -> Vec<Process> {
-    let mut pids = Vec::new();
-    /* remake */
-    if let Ok(entries) = fs::read_dir("/proc") {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_dir() {
-                    if let Ok(pid) = entry
-                        .file_name()
-                        .into_string()
-                        .unwrap_or_default()
-                        .parse::<u32>()
-                    {
-                        pids.push(pid);
-                    }
-                }
-            }
+    let mut processes = Vec::new();
+    let Ok(entries) = fs::read_dir("/proc") else {
+        panic!("[Unable to find /proc dir]")
+    };
+
+    for entry in entries {
+        let Ok(entry) = entry else {
+            continue;
+        };
+
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let Ok(pid) = entry
+            .file_name()
+            .into_string()
+            .unwrap_or_default()
+            .parse::<u32>()
+        else {
+            continue;
+        };
+
+        if let Ok(proc) = Process::try_from(pid) {
+            processes.push(proc);
         }
     }
-    /* remake */
 
-    pids.iter()
-        .filter_map(|&pid| Process::try_from(pid).ok())
-        .collect::<Vec<Process>>()
+    processes
 }
 
 impl TryFrom<u32> for Process {
@@ -51,32 +57,23 @@ impl TryFrom<u32> for Process {
         let status_content = fs::read_to_string(status_dir)?;
         for line in status_content.lines() {
             match line.split_once(':') {
-                Some(("PPid", p)) => ppid = p.trim().parse().unwrap_or_default(),
-                Some(("State", s)) => state = State::try_from(s.trim()).unwrap_or_default(),
+                Some(("PPid", p)) => ppid = p.trim().parse().unwrap_or(0),
+                Some(("State", s)) => state = State::try_from(s.trim())?,
                 _ => {}
             }
         }
 
-        /* remake */
         let thread_dir_content = fs::read_dir(thread_dir)?;
         for entry in thread_dir_content {
-            if let Ok(e) = entry {
-                if e.path().is_dir() {
-                    if let Some(tid) = e
-                        .path()
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_str()
-                        .unwrap_or_default()
-                        .parse()
-                        .ok()
-                    {
-                        threads.push(Thread { tid }); // Later: Thread::try_from(tid)
-                    }
+            let entry = entry?;
+            if entry.path().is_dir() {
+                if let Some(file_name) = entry.path().file_name().ok_or(ErrorKind::Other)?.to_str()
+                {
+                    let tid = file_name.parse().unwrap_or_default();
+                    threads.push(Thread { tid }); // Later: Thread::try_from(
                 }
             }
         }
-        /* remake */
 
         Ok(Process {
             pid,
