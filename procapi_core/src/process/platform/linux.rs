@@ -4,11 +4,9 @@ use std::fs;
 use std::io::{Error, ErrorKind};
 use std::path::Path;
 
-pub fn get_processes() -> Vec<Process> {
+pub fn get_processes() -> Result<Vec<Process>, Error> {
     let mut processes = Vec::new();
-    let Ok(entries) = fs::read_dir("/proc") else {
-        panic!("[Unable to find /proc dir]")
-    };
+    let entries = fs::read_dir("/proc")?;
 
     for entry in entries {
         let Ok(entry) = entry else {
@@ -23,7 +21,8 @@ pub fn get_processes() -> Vec<Process> {
         let Ok(pid) = entry
             .file_name()
             .into_string()
-            .unwrap_or_default()
+            .ok()
+            .ok_or(Error::last_os_error())?
             .parse::<u32>()
         else {
             continue;
@@ -34,7 +33,7 @@ pub fn get_processes() -> Vec<Process> {
         }
     }
 
-    processes
+    Ok(processes)
 }
 
 impl TryFrom<u32> for Process {
@@ -57,7 +56,7 @@ impl TryFrom<u32> for Process {
         let status_content = fs::read_to_string(status_dir)?;
         for line in status_content.lines() {
             match line.split_once(':') {
-                Some(("PPid", p)) => ppid = p.trim().parse().unwrap_or(0),
+                Some(("PPid", p)) => ppid = p.trim().parse().unwrap_or_default(),
                 Some(("State", s)) => state = State::try_from(s.trim())?,
                 _ => {}
             }
@@ -70,7 +69,7 @@ impl TryFrom<u32> for Process {
                 if let Some(file_name) = entry.path().file_name().ok_or(ErrorKind::Other)?.to_str()
                 {
                     let tid = file_name.parse().unwrap_or_default();
-                    threads.push(Thread { tid }); // Later: Thread::try_from(
+                    threads.push(Thread { tid }); // Later: Thread::try_from(tid)
                 }
             }
         }

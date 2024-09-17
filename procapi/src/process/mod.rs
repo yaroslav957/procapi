@@ -9,7 +9,7 @@ pub struct ProcessInfo {
 impl ProcessInfo {
     pub fn init() -> Self {
         Self {
-            processes: get_processes(), // пох, пока так
+            processes: get_processes().unwrap(), // пох, пока так
         }
     }
 }
