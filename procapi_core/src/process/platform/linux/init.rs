@@ -26,7 +26,7 @@ impl TryFrom<u32> for Process {
         for line in status_content.lines() {
             match line.split_once(':') {
                 Some(("PPid", p)) => ppid = p.trim().parse().unwrap_or_default(),
-                Some(("State", s)) => state = State::try_from(s.trim())?,
+                Some(("State", s)) => state = State::try_from(s.trim().as_bytes()[0])?,
                 _ => {}
             }
         }
