@@ -30,6 +30,8 @@ impl TryFrom<i32> for Process {
         if let Ok(info) = proc_pid::pidinfo::<TaskAllInfo>(pid, 0) {
             let threads = listpidinfo::<ListThreads>(pid, info.ptinfo.pti_threadnum as usize)
                 .unwrap_or_default();
+            
+            // migrate to state::platform::macos.rs <--
             let pth_state = threads
                 .iter()
                 .filter_map(|&t| pidinfo::<ThreadInfo>(pid, t).ok())
@@ -45,11 +47,12 @@ impl TryFrom<i32> for Process {
                     }
                     4 => State::Uninterruptible,
                     5 => State::Dead,
-                    _ => unreachable!("unknown pth_run_state"),
+                    _ => unreachable!("[Unknown pth_run_state]"),
                 })
                 .min()
                 .unwrap_or_default();
-
+            // migrate to state::platform::macos.rs <--
+            
             Ok(Process {
                 pid: pid as u32,
                 ppid: info.pbsd.pbi_ppid,
@@ -155,5 +158,5 @@ unsafe fn get_str_checked(
     let len = end as usize - start as usize;
     let bytes = std::slice::from_raw_parts(start, len);
     let s = std::str::from_utf8(bytes);
-    s.unwrap_or("").to_owned()
+    s.unwrap_or("").to_owned() //_or..... default)))
 }
