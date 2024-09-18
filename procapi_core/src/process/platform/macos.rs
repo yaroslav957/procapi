@@ -15,12 +15,12 @@ use std::{
 
 use crate::process::{Process, State, Thread};
 
-pub fn get_processes() -> Vec<Process> {
-    pids_by_type(ProcFilter::All)
+pub fn get_processes() -> Result<Vec<Process>, Error> {
+    Ok(pids_by_type(ProcFilter::All)
         .unwrap_or_default()
         .iter()
         .filter_map(|&pid| Process::try_from(pid as i32).ok())
-        .collect::<Vec<Process>>()
+        .collect::<Vec<Process>>())
 }
 
 impl TryFrom<i32> for Process {
@@ -34,28 +34,27 @@ impl TryFrom<i32> for Process {
                 .iter()
                 .filter_map(|&t| pidinfo::<ThreadInfo>(pid, t).ok())
                 .map(|t| match t.pth_run_state {
-                    1 => 1, // TH_STATE_RUNNING
-                    2 => 5, // TH_STATE_STOPPED
+                    1 => State::Running,
+                    2 => State::Sleeping,
                     3 => {
-                        // TH_STATE_WAITING
                         if t.pth_sleep_time > 20 {
-                            4
+                            State::Waiting
                         } else {
-                            3
+                            State::Embryo
                         }
                     }
-                    4 => 2, // TH_STATE_UNINTERRUPTIBLE
-                    5 => 6, // TH_STATE_HALTED
-                    _ => 7,
+                    4 => State::Uninterruptible,
+                    5 => State::Dead,
+                    _ => unreachable!("unknown pth_run_state"),
                 })
                 .min()
-                .unwrap_or(7);
+                .unwrap_or_default();
 
             Ok(Process {
                 pid: pid as u32,
                 ppid: info.pbsd.pbi_ppid,
                 name: proc_pid::name(pid).unwrap_or_else(|_| pidpath(pid).unwrap_or_default()),
-                state: State::try_from(pth_state)?,
+                state: pth_state,
                 cmd: Process::get_cmdline(pid as u32)
                     .unwrap_or_else(|| vec![pidpath(pid).unwrap_or_default()])
                     .join(" "),
@@ -67,27 +66,6 @@ impl TryFrom<i32> for Process {
         } else {
             Err(Error::last_os_error())
         }
-    }
-}
-
-impl TryFrom<u32> for State {
-    type Error = Error;
-
-    fn try_from(pth_state: u32) -> Result<Self, Self::Error> {
-        Ok(match pth_state {
-            1 => State::Runnable,
-            2 => State::UninterruptibleWait,
-            3 => State::Sleeping,
-            4 => State::Idle,
-            5 => State::Stopped,
-            6 => State::Dead,
-            _ => {
-                return Err(Error::new(
-                    ErrorKind::InvalidInput,
-                    format!("unknown pth state: {pth_state}"),
-                ))
-            }
-        })
     }
 }
 
@@ -169,7 +147,7 @@ fn get_argmax() -> size_t {
     sys_max_args as size_t
 }
 
-#[inline]
+#[inline(always)]
 unsafe fn get_str_checked(
     start: *mut u8,
     end: *mut u8,
