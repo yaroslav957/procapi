@@ -17,7 +17,7 @@ pub fn get_processes() -> Result<Vec<Process>, Error> {
         .unwrap_or_default()
         .iter()
         .filter_map(|&pid| Process::try_from(pid as i32).ok())
-        .collect::<Vec<Process>>())
+        .collect())
 }
 
 impl TryFrom<i32> for Process {
@@ -46,7 +46,7 @@ impl TryFrom<i32> for Process {
                 threads: threads
                     .iter()
                     .map(|&tid| Thread { tid })
-                    .collect::<Vec<Thread>>(),
+                    .collect(),
             })
         } else {
             Err(Error::last_os_error())
@@ -62,8 +62,8 @@ impl Process {
             pid.try_into().unwrap(),
         ];
         let mut size = get_argmax();
-        let mut process_args = Vec::<u8>::with_capacity(size);
-        let mut res = Vec::<String>::new();
+        let mut process_args: Vec<u8> = Vec::with_capacity(size);
+        let mut res = Vec::new();
 
         unsafe {
             if libc::sysctl(
@@ -86,7 +86,7 @@ impl Process {
             );
 
             let mut arg_start: *mut u8 = null_mut();
-            let mut ch_ptr: *mut u8 = process_args
+            let mut ch_ptr = process_args
                 .as_mut_ptr()
                 .add(std::mem::size_of::<libc::c_int>());
 
@@ -116,7 +116,7 @@ impl Process {
 fn get_argmax() -> size_t {
     let mut sys_max_args = 0i32;
     let mut size = std::mem::size_of::<libc::c_int>();
-    let mut mib: [libc::c_int; 2] = [libc::CTL_KERN, libc::KERN_ARGMAX];
+    let mut mib = [libc::CTL_KERN, libc::KERN_ARGMAX];
 
     unsafe {
         libc::sysctl(
